@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 	:: Set THIS_VERSION to the version of this batch file script
-	set "THIS_VERSION=1.0.a004"
+	set "THIS_VERSION=2.0.b01"
 	
 	REM Set SCRIPT_NAME to the name of this batch file script
 	set "SCRIPT_NAME=Workstation"
@@ -12,8 +12,179 @@ setlocal enabledelayedexpansion
 	
 	REM Set GH_REPO_NAME to your GitHub repository name here
 	set "GH_REPO_NAME=Workstation"
+
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
+
+:SetUpTempDir
+
+	:: Setting up the Temp Directory
+	CD /D "%temp%"
+		IF exist "!GH_REPO_NAME!-UDPATE" RD /S /Q "!GH_REPO_NAME!-UDPATE"
+		MD "!GH_REPO_NAME!-UDPATE"
+		
+	CD /D "!GH_REPO_NAME!-UDPATE"
+
+:GetLatestVerNum
+
+	:: URL to fetch JSON data from GitHub API
+	set "GH_LATEST_RLS_PAGE=https://api.github.com/repos/!GH_USER_NAME!/!GH_REPO_NAME!/releases/latest"
+	::                      https://api.github.com/repos/KSanders7070/AUTO_UPDATE_BATCH_FILE/releases/latest
+		set "URL_TO_DOWNLOAD=!GH_LATEST_RLS_PAGE!"
+	set "LATEST_VERSION="
 	
-	REM TODO add version check code prior to release here
+	:RedirectLooop
+
+		if exist response.json del /Q response.json
+		
+		:: Use CURL to download the JSON data
+		curl -s -o response.json !URL_TO_DOWNLOAD!
+		
+			if not exist "response.json" (
+			
+			ECHO.
+			ECHO.
+			ECHO -------
+			ECHO  ERROR
+			ECHO -------
+			ECHO.
+			ECHO Something went wrong with downloading the latest release information.
+			ECHO.
+			ECHO.
+			ECHO Press any key to continue with this version of the batch file or
+			ECHO just close this window...
+			ECHO NOTE-I will open the releases page for you to see if there is a newer version.
+			
+			PAUSE>NUL
+			START "" "!GH_LATEST_RLS_PAGE!"
+			GOTO UpdateCleanUp
+			)
+		
+		::Check if "exceeded" is present in the JSON, if so it likely means the API Call limit has been reached.
+		findstr /C:"exceeded" response.json
+			if "%errorlevel%"=="0" (
+				ECHO.
+				ECHO.
+				ECHO -------
+				ECHO  ERROR
+				ECHO -------
+				ECHO.
+				ECHO While trying to get the latest version number for this batch file from GitHub,
+				ECHO I found that the number of requests has been exceeded.
+				ECHO You can try again in a while.
+				ECHO.
+				ECHO.
+				ECHO Press any key to continue with this version of the batch file or
+				ECHO just close this window...
+				ECHO NOTE-I will open the releases page for you to see if there is a newer version.
+				
+				PAUSE>NUL
+				START "" "!GH_LATEST_RLS_PAGE!"
+				GOTO UpdateCleanUp
+			)
+				
+		:: Check if "tag_name" is present in the JSON.
+		findstr /C:"tag_name" response.json
+			if "%errorlevel%"=="0" (
+				:: tag_name Found in file which means there was no redirect or this is the final redirect
+				:: page and has the version number on it.
+				:: Extract the text between the second set of quotes and remove the first character (usually a lower case v).
+				for /f "tokens=2 delims=:" %%a in ('findstr /C:"tag_name" response.json') do (
+					set "LATEST_VERSION=%%~a"
+					set "LATEST_VERSION=!LATEST_VERSION:~3,-2!"
+				)
+			) else (
+				:: tag_name was not found which means that this is likely a redirect page.
+				:: Extract the line that has "https://api." and grab the URL between the second set of quotes.
+				:: Feed this URL back through the loop to see if this one redirects too. If it does, keep following until tag_name is found.
+				for /f "tokens=1,* delims=" %%a in ('findstr /C:"https://api." response.json') do (
+					set "URL_TO_DOWNLOAD=%%~a"
+					set "URL_TO_DOWNLOAD=!URL_TO_DOWNLOAD:~10,-2!"
+				)
+				goto RedirectLooop
+			)
+
+:DoYouHaveLatest
+	
+	:: If the current version matches the latest version available, contine on with normal code.
+	if /i "!THIS_VERSION!"=="!LATEST_VERSION!" goto UpdateCleanUp
+
+:UpdateAvailablePrompt
+
+	cls
+	
+	ECHO.
+	ECHO.
+	ECHO * * * * * * * * * * * * *
+	ECHO     UPDATE AVAILABLE
+	ECHO * * * * * * * * * * * * *
+	ECHO.
+	ECHO.
+	ECHO GITHUB VERSION: !LATEST_VERSION!
+	ECHO YOUR VERSION:   !THIS_VERSION!
+	ECHO.
+	ECHO.
+	ECHO.
+	ECHO  CHOICES:
+	ECHO.
+	ECHO     U   -   MANUALLY DOWNLOAD THE NEWEST BATCH FILE UPDATE AND USE THAT FILE.
+	ECHO.
+	ECHO     C   -   CONTINUE USING THIS FILE.
+	ECHO.
+	ECHO.
+	ECHO.
+
+	SET UPDATE_CHOICE=NO_CHOICE_MADE
+
+	SET /p UPDATE_CHOICE=Please type either M, or C and press Enter: 
+		if /I %UPDATE_CHOICE%==U GOTO UPDATE
+		if /I %UPDATE_CHOICE%==C GOTO UpdateCleanUp
+		if /I %UPDATE_CHOICE%==NO_CHOICE_MADE GOTO UpdateAvailablePrompt
+	
+:UPDATE
+	
+	set GH_LATEST_RLS_PAGE=https://github.com/!GH_USER_NAME!/!GH_REPO_NAME!/releases/latest
+	
+	CLS
+	
+	START "" "!GH_LATEST_RLS_PAGE!"
+	
+	ECHO.
+	ECHO.
+	ECHO GO TO THE FOLLOWING WEBSITE, DOWNLOAD AND USE THE LATEST VERSION OF %~nx0
+	ECHO.
+	ECHO    !GH_LATEST_RLS_PAGE!
+	ECHO.
+	ECHO Press any key to exit...
+	
+	pause>nul
+	
+	exit
+
+:UpdateCleanUp
+
+	cls
+	
+	CD /D "%temp%"
+		IF exist "!GH_REPO_NAME!-UDPATE" RD /S /Q "!GH_REPO_NAME!-UDPATE"
+	
+	:: Ensures the directory is back to where this batch file is hosted.
+	CD /D "%~dp0"
+
 :RestOfCode
 
 :HELLO
@@ -23,7 +194,7 @@ setlocal enabledelayedexpansion
 	set "BatchAppDataDir=%LocalAppdata%\WorkstationBatch"
 
 	cls
-	
+
 	echo.
 	echo.
 	echo  WHAT WOULD YOU LIKE TO DO?
@@ -98,15 +269,16 @@ setlocal enabledelayedexpansion
 	
 	REM Skip the first line, as the first line only provides the user with header information when editing the file.
 	REM Then investigate the values of each line.
-	for /f "skip=1 tokens=1-5 delims=," %%a in (Workstation_Config.csv) do (
+	for /f "skip=1 tokens=1-6 delims=," %%a in (Workstation_Config.csv) do (
 		
 		REM These variables can only be used for IF comparison commands outside of this loop such as calling a function
 		REM That is why you will see the %%@ being used within this for loop.
 		set NAME=%%a
 		set TYPE=%%b
-		set FULL_PATH=%%c
-		set URL=%%d
-		set RunWithoutElevatedPermissions=%%e
+		set URL=%%c
+		set FULL_PATH=%%d
+		set FILE_ARGS=%%e
+		set RunWithoutElevatedPermissions=%%f
 		
 		REM See if any values return NUL, if so display an error to the user.
 		set ThereIsANulField=false
@@ -116,6 +288,7 @@ setlocal enabledelayedexpansion
 			if "%%c"=="" set ThereIsANulField=true
 			if "%%d"=="" set ThereIsANulField=true
 			if "%%e"=="" set ThereIsANulField=true
+			if "%%f"=="" set ThereIsANulField=true
 			if not "!ThereIsANulField!"=="false" call :ConfigHasNulValues
 	
 		REM Check NAME and if it is "NA", then have the user change it.
@@ -132,16 +305,16 @@ setlocal enabledelayedexpansion
 		REM if TYPE is "PROGRAM"...
 		if /i "%%b"=="PROGRAM" (
 			REM ...And the FULL_PATH is NA, there is an issue.
-			if "%%c"=="NA" call :FULL_PATH_IS_NA
+			if "%%d"=="NA" call :FULL_PATH_IS_NA
 			
 			REM Check to see if the FULL_PATH is found, if not we have issues...
-			if not exist "%%c" call :FULL_PATH_NOT_FOUND
+			if not exist "%%d" call :FULL_PATH_NOT_FOUND
 		)
 
 		REM if TYPE is "WEBSITE"...
 		if /i "%%b"=="WEBSITE" (
 			REM ...And the URL is NA, there is an issue.
-			if "%%d"=="NA" call :URL_IS_NA
+			if "%%c"=="NA" call :URL_IS_NA
 		)
 		
 		REM DEV NOTE: I have decide not to a validation on the URL prior to running the full script.
@@ -150,29 +323,96 @@ setlocal enabledelayedexpansion
 		echo Passed:
 		echo 	NAME: 			%%a
 		echo 	TYPE:			%%b
-		echo 	FULL_PATH:		%%c
-		echo 	URL:			%%d
-		echo 	W/O Elv Perms:		%%e
+		echo 	URL:			%%c
+		echo 	FULL_PATH:		%%d
+		echo 	FILE_ARGS:		%%e
+		echo 	W/O Elv Perms:		%%f
 	)
-	
-	cls
-	
+
+	echo.
 	echo.
 	echo Config File validated.
 	echo 	Note-URLs are not checked for validitiy except for making sure it is not NA when TYPE=WEBSITE.
 	echo.
-	
-	PAUSE
-	
-	EXIT
+	echo.
+	echo.
+	echo.
+	echo.
+	echo.
 
 :LaunchWorkstation
 	REM TODO Begin the process again. Basically the same as above but now we actually start the data, and no error checking is required.
-	ECHO reached LaunchWorkstation, and there is work to be done here still.
-	PAUSE
-	EXIT
+	echo.
+	echo.
+	echo LAUNCHING WEBSITES AND PROGRAMS...
+	
+	for /f "skip=1 tokens=1-6 delims=," %%a in (Workstation_Config.csv) do (
+		REM These variables can only be used for IF comparison commands outside of this loop such as calling a function
+		REM That is why you will see the %%@ being used within this for loop.
+		set NAME=%%a
+		set TYPE=%%b
+		set URL=%%c
+		set FULL_PATH=%%d
+		set FILE_ARGS=%%e
+		set RunWithoutElevatedPermissions=%%f
+		
+		if "%%b"=="WEBSITE" (
+			call :LAUNCH_WEBSITE
+		)
+		
+		if "%%b"=="PROGRAM" (
+			call :LAUNCH_PROGRAM
+		)
+	)
+
+	echo.
+	echo.
+	echo All Websites and Programs should be launched.
+	echo.
+	echo.
+	echo.
+	echo Press any key to exit this batch file script...
+	
+	pause>nul
+	
+	exit
 
 :CallFunctions
+
+:LAUNCH_WEBSITE
+
+	START "" "!URL!"
+	
+	goto :EOF
+
+:LAUNCH_PROGRAM
+
+	for %%F in ("!FULL_PATH!") do (
+		set "DIRECTORY=%%~dpF"
+		set "FILE_AND_EXTENSION=%%~nxF"
+	)
+	
+	cd /d "!DIRECTORY!"
+
+	if /i "!RunWithoutElevatedPermissions!"=="Y" (
+		if /i not "!FILE_ARGS!"=="NA" (
+			cmd /min /C "set __COMPAT_LAYER=RUNASINVOKER && start "" "!FILE_AND_EXTENSION!" !FILE_ARGS!"
+		)
+		
+		if /i "!FILE_ARGS!"=="NA" (
+			cmd /min /C "set __COMPAT_LAYER=RUNASINVOKER && start "" "!FILE_AND_EXTENSION!""
+		)
+	) else (
+		if /i not "!FILE_ARGS!"=="NA" (
+			start "" "!FILE_AND_EXTENSION!" !FILE_ARGS!
+		)
+		
+		if /i "!FILE_ARGS!"=="NA" (
+			start "" "!FILE_AND_EXTENSION!"
+		)	
+	)
+	
+	goto :EOF
 
 :InitialSetup
 	REM Creates a directory for this BATCH file to host data in like the config file and preferences.
@@ -180,12 +420,15 @@ setlocal enabledelayedexpansion
 	
 	REM Creates an example Config file for the user to be able to edit.
 	(
-		echo NAME,TYPE,FULL_PATH,URL,RunWithoutElevatedPermissions
-		echo GOOGLE SITE,WEBSITE,NA,WWW.GOOGLE.COM,NA
-		echo NOAA SITE,WEBSITE,NA,WWW.NOAA.GOV,NA
-		echo vATIS,PROGRAM,%LocalAppdata%\vATIS-4.0\Application\vATIS.exe,NA,NA
-		echo AFV,PROGRAM,C:\AudioForVATSIM\AudioForVATSIM.exe,NA,Y
-		echo CRC,PROGRAM,%LocalAppdata%\CRC\Application\CRC.exe,NA,NA
+		ECHO NAME,TYPE,URL,FULL_PATH,FILE_ARGS,RunWithoutElevatedPermissions
+		ECHO Pret-Duty Wx,WEBSITE,https://www.weather.gov/zlc/predutyweatherbriefing,NA,NA,NA
+		ECHO Facility TAFs,WEBSITE,https://www.aviationweather.gov/taf/data?ids=KBIL+KBOI+KBZN+KSUN+KGPI+KGTF+KHLN+KIDA+KJAC+KTWF+KMSO+KOGD+KPIH+KPVU+KSLC,NA,NA,NA
+		ECHO vSTRIPS,WEBSITE,https://virtualnas.net/vstrips,NA,NA,NA
+		ECHO vTDLS,WEBSITE,https://virtualnas.net/vtdls,NA,NA,NA
+		ECHO vATIS,PROGRAM,NA,C:\Users\Kyle Sanders\AppData\Local\vATIS-4.0\Application\vATIS.exe,NA,NA
+		ECHO AFV,PROGRAM,NA,C:\AudioForVATSIM\AudioForVATSIM.exe,NA,Y
+		ECHO CRC,PROGRAM,NA,C:\Users\Kyle Sanders\AppData\Local\CRC\Application\CRC.exe,NA,NA
+		ECHO Discord,PROGRAM,NA,C:\Users\Kyle Sanders\AppData\Local\Discord\Update.exe,--processStart Discord.exe,NA
 	)>"!BatchAppDataDir!\Workstation_Config.csv"
 	
 	(
@@ -214,18 +457,31 @@ setlocal enabledelayedexpansion
 		echo ----If you can double click a file and it runs, it is a PROGRAM.
 		echo ----If it is something you visit in an internet web browser, it is a WEBSITE.
 		echo.
-		echo “FULL_PATH”
-		echo --The directory where to find the file and including the file at the end.
-		echo --Look at the examples provided in the .csv file for a better idea of what this is.
-		echo --If the TYPE is a WEBSITE, type NA here.
-		echo.
 		echo “URL”
 		echo --The Web Address of the website you want to open in your default web browser.
 		echo --If the TYPE is a PROGRAM, type NA here.
 		echo.
+		echo “FULL_PATH”
+		echo --The directory where to find the file and including the file at the end.
+		echo --Look at the examples provided in the .csv file for a better idea of what this is.
+		echo --The easiest way to get this path is to right click on the shortcut of the program,
+		echo   if you have a shortcut and copy/paste the data that is in the "TARGET" field.
+		echo ---If you have anything like "--debug" after the extention, those are called arguments
+		echo    and they are covered in the next field description. For now, just grab everything up
+		echo    until the extension such as ".exe" and paste it here.
+		echo --Be sure to remove any spaces at the end of the path.
+		echo --If the TYPE is a WEBSITE, type NA here.
+		echo.
+		echo “FILE_ARGS”
+		echo --If in the previous field you encountered any Arguements after the file extension,
+		echo   copy/paste that arguement in this field without any prefixing spaces before the dash.
+		echo --Look at the examples provided in the .csv file for a better idea of what this is.
+		echo --If the TYPE is a WEBSITE, type NA here.
+		echo.
 		echo “RunWithoutElevatedPermissions”
 		echo --Unless you already understand what this is, just leave this field as NA.
 		echo --If you are a user of AudioForVATSIM “AFV”, you may want this field to be Y.
+		echo.
 		echo.
 		echo.
 	)>"!BatchAppDataDir!\ReadMe.txt"
