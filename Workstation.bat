@@ -1,8 +1,9 @@
 @ECHO OFF
 setlocal enabledelayedexpansion
+mode con: cols=140 lines=40
 
 	:: Set THIS_VERSION to the version of this batch file script
-	set "THIS_VERSION=2.0.b04"
+	set "THIS_VERSION=2.0.b05"
 	
 	REM Set SCRIPT_NAME to the name of this batch file script
 	set "SCRIPT_NAME=Workstation"
@@ -223,6 +224,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	echo              -Option to reset this BATCH file like new.
 	echo.
 	echo              -Option to Edit the configuration file.
+	echo.
 	echo.
 	echo.
 	echo To start up all of your pre-defined programs/websites, just hit your enter key.
