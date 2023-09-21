@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 mode con: cols=140 lines=40
 
 	:: Set THIS_VERSION to the version of this batch file script
-	set "THIS_VERSION=2.0.b05"
+	set "THIS_VERSION=2.0.b06"
 	
 	REM Set SCRIPT_NAME to the name of this batch file script
 	set "SCRIPT_NAME=Workstation"
@@ -30,7 +30,18 @@ mode con: cols=140 lines=40
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
+	
+	:: Set variables for later use.
 
+	set User_Level_GH_RLS_PAGE=https://github.com/!GH_USER_NAME!/!GH_REPO_NAME!/releases
+	::                         https://github.com/KSanders7070/AUTO_UPDATE_BATCH_FILE/releases
+		
+	set "GH_LATEST_RLS_PAGE=https://api.github.com/repos/!GH_USER_NAME!/!GH_REPO_NAME!/releases/latest"
+	::                      https://api.github.com/repos/KSanders7070/AUTO_UPDATE_BATCH_FILE/releases/latest
+	set "URL_TO_DOWNLOAD=!GH_LATEST_RLS_PAGE!"
+	
+	set "LATEST_VERSION="
+	
 :SetUpTempDir
 
 	:: Setting up the Temp Directory
@@ -41,13 +52,8 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	CD /D "!GH_REPO_NAME!-UDPATE"
 
 :GetLatestVerNum
+:: URL to fetch JSON data from GitHub API
 
-	:: URL to fetch JSON data from GitHub API
-	set "GH_LATEST_RLS_PAGE=https://api.github.com/repos/!GH_USER_NAME!/!GH_REPO_NAME!/releases/latest"
-	::                      https://api.github.com/repos/KSanders7070/AUTO_UPDATE_BATCH_FILE/releases/latest
-		set "URL_TO_DOWNLOAD=!GH_LATEST_RLS_PAGE!"
-	set "LATEST_VERSION="
-	
 	:RedirectLooop
 
 		if exist response.json del /Q response.json
@@ -71,7 +77,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 			ECHO NOTE-I will open the releases page for you to see if there is a newer version.
 			
 			PAUSE>NUL
-			START "" "!GH_LATEST_RLS_PAGE!"
+			START "" "!User_Level_GH_RLS_PAGE!"
 			GOTO UpdateCleanUp
 			)
 		
@@ -94,7 +100,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 				ECHO NOTE-I will open the releases page for you to see if there is a newer version.
 				
 				PAUSE>NUL
-				START "" "!GH_LATEST_RLS_PAGE!"
+				START "" "!User_Level_GH_RLS_PAGE!"
 				GOTO UpdateCleanUp
 			)
 				
@@ -157,18 +163,15 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		if /I %UPDATE_CHOICE%==NO_CHOICE_MADE GOTO UpdateAvailablePrompt
 	
 :UPDATE
-	
-	set GH_LATEST_RLS_PAGE=https://github.com/!GH_USER_NAME!/!GH_REPO_NAME!/releases/latest
-	
 	CLS
 	
-	START "" "!GH_LATEST_RLS_PAGE!"
+	START "" "!User_Level_GH_RLS_PAGE!"
 	
 	ECHO.
 	ECHO.
 	ECHO GO TO THE FOLLOWING WEBSITE, DOWNLOAD AND USE THE LATEST VERSION OF %~nx0
 	ECHO.
-	ECHO    !GH_LATEST_RLS_PAGE!
+	ECHO    !User_Level_GH_RLS_PAGE!
 	ECHO.
 	ECHO Press any key to exit...
 	
@@ -193,6 +196,11 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	REM sets the variable to this BATCH file LocalAppData directory.
 	REM At this point, it has not been created if this is the first time running the script.
 	set "BatchAppDataDir=%LocalAppdata%\WorkstationBatch"
+	
+	REM Set this value to ON if you want more data to be presented and pausing at various stages of this script.
+	REM Set this value to OFF, otherwise.
+	REM TODO Set this value to OFF before release.
+	set debug=OFF
 
 	cls
 
@@ -219,15 +227,21 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	echo.
 	echo.
 	echo.
-	echo      H) HELP.
-	echo.
-	echo              -Option to reset this BATCH file like new.
-	echo.
-	echo              -Option to Edit the configuration file.
-	echo.
-	echo.
-	echo.
-	echo To start up all of your pre-defined programs/websites, just hit your enter key.
+	
+	if exist "!BatchAppDataDir!" (
+		echo      H^) HELP.
+		echo.
+		echo              -Option to reset this BATCH file like new.
+		echo.
+		echo              -Option to Edit the configuration file.
+		echo.
+		echo.
+		echo.
+		echo To start up all of your programs/websites, just hit your enter key.
+	) else (
+		echo To start configuring your workstation setup, just hit your enter key.
+	)
+	
 	echo.
 	echo.
 	
@@ -237,7 +251,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		if /i "!WHAT_T0_DO_CHOICE!"=="C" GOTO CHECKUPDATE
 		if /i "!WHAT_T0_DO_CHOICE!"=="R" GOTO REPORT_ISSUE
 		if /i "!WHAT_T0_DO_CHOICE!"=="H" GOTO HELP
-		if /i "!WHAT_T0_DO_CHOICE!"=="NO_INPUT_BY_USER" GOTO AppDirChk
+		if /i "!WHAT_T0_DO_CHOICE!"=="NO_INPUT_BY_USER" GOTO FirstTimeRunChk
 		
 		echo.
 		echo  *** !WHAT_T0_DO_CHOICE! *** is NOT a recognized response. Try again...
@@ -254,10 +268,22 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 
 	GOTO HELLO
 
-:AppDirChk
+:FirstTimeRunChk
 	REM Checks if the WorkstationBatch AppData directory for this batch script exists.
-	REM If not, it's likely the first time running and goes to the setup function.
-	if not exist "!BatchAppDataDir!" call :InitialSetup
+	REM If not, it's likely the first time running and changes the behavior of the UpdateAppdataFilesFunction.
+	set First_Time_Run=false
+	
+	if not exist "!BatchAppDataDir!" (
+		REM Creates a directory for this BATCH file to host data in like the config file and preferences.
+		set "First_Time_Run=true"
+		md "!BatchAppDataDir!"
+	)
+
+:UpdateAppdataFiles
+	
+	REM Will call the function that will update the ReadMe.txt and the EXAMPLE config csv.
+	REM If this is the first time running the script, it will also make the actual Config csv file.
+	call :UpdateAppdataFilesFunction
 
 :InitiateVariables
 	REM Set initial values for variables
@@ -291,7 +317,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		set FULL_PATH=%%d
 		set FILE_ARGS=%%e
 		set RunWithoutElevatedPermissions=%%f
-		
+
 		REM See if any values return NUL, if so display an error to the user.
 		set ThereIsANulField=false
 			if "%%a"=="" set ThereIsANulField=true
@@ -300,7 +326,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 			if "%%d"=="" set ThereIsANulField=true
 			if "%%e"=="" set ThereIsANulField=true
 			if "%%f"=="" set ThereIsANulField=true
-			if not "!ThereIsANulField!"=="false" call :ConfigHasNulValues
+			if "!ThereIsANulField!"=="true" call :ConfigHasNulValues
 	
 		REM Check NAME and if it is "NA", then have the user change it.
 		if "%%a"=="NA" (
@@ -309,7 +335,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	
 		REM if TYPE is not "PROGRAM"...
 		if /i not "%%b"=="PROGRAM" (
-			REM ...and it isn't "WEBSITE" then there is an issue.
+			REM ...and if it isn't "WEBSITE" then there is an issue.
 			if /i not "%%b"=="WEBSITE" call :TYPE_NOT_VALID
 		)
 	
@@ -329,15 +355,20 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		)
 		
 		REM DEV NOTE: I have decide not to a validation on the URL prior to running the full script.
-
-		echo.
-		echo Passed:
-		echo 	NAME: 			%%a
-		echo 	TYPE:			%%b
-		echo 	URL:			%%c
-		echo 	FULL_PATH:		%%d
-		echo 	FILE_ARGS:		%%e
-		echo 	W/O Elv Perms:		%%f
+		
+		REM Will display the varias values after they have been check for validitiy.
+		if /i not "!debug!"=="OFF" (
+			echo.
+			echo Passed:
+			echo 	NAME: 			%%a
+			echo 	TYPE:			%%b
+			echo 	URL:			%%c
+			echo 	FULL_PATH:		%%d
+			echo 	FILE_ARGS:		%%e
+			echo 	W/O Elv Perms:		%%f
+			
+			pause>nul
+		)
 	)
 
 	echo.
@@ -352,7 +383,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	echo.
 
 :LaunchWorkstation
-	REM TODO Begin the process again. Basically the same as above but now we actually start the data, and no error checking is required.
+	
 	echo.
 	echo.
 	echo LAUNCHING WEBSITES AND PROGRAMS...
@@ -378,7 +409,8 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 
 	echo.
 	echo.
-	echo All Websites and Programs should be launched.
+	echo All Websites and Programs should be launched/ing.
+	echo      Note-Some slower computers may take a moment to launch all of these.
 	echo.
 	echo.
 	echo.
@@ -391,57 +423,66 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 :CallFunctions
 
 :LAUNCH_WEBSITE
-
+	REM Launches the website.
 	START "" "!URL!"
 	
 	goto :EOF
 
 :LAUNCH_PROGRAM
-
+	REM Splits the FULL_PATH into a directory and a file extension.
 	for %%F in ("!FULL_PATH!") do (
 		set "DIRECTORY=%%~dpF"
 		set "FILE_AND_EXTENSION=%%~nxF"
 	)
 	
+	REM The only reason we are calling this directory is because some programs are not coded
+	REM to know the location of the .exe being launched and takes the location of this batch file instead; Creating issues down the road.
 	cd /d "!DIRECTORY!"
-
+	
 	if /i "!RunWithoutElevatedPermissions!"=="Y" (
+		REM If the user elected to have the program launch without elevated permissions...
+		
+		REM ...and there are Arguments to be passed in with the launch of the program do this.
 		if /i not "!FILE_ARGS!"=="NA" (
 			cmd /min /C "set __COMPAT_LAYER=RUNASINVOKER && start "" "!FILE_AND_EXTENSION!" !FILE_ARGS!"
 		)
 		
 		if /i "!FILE_ARGS!"=="NA" (
+			REM ...and there are no Arguments to be passed in with the launch of the program do this.
 			cmd /min /C "set __COMPAT_LAYER=RUNASINVOKER && start "" "!FILE_AND_EXTENSION!""
 		)
 	) else (
 		if /i not "!FILE_ARGS!"=="NA" (
+			REM If the user did NOT elect to have the program launch without elevated permissions...
+			
+			REM ...and there are Arguments to be passed in with the launch of the program do this.
 			start "" "!FILE_AND_EXTENSION!" !FILE_ARGS!
 		)
 		
 		if /i "!FILE_ARGS!"=="NA" (
+			REM ...and there are no Arguments to be passed in with the launch of the program do this.
 			start "" "!FILE_AND_EXTENSION!"
 		)	
 	)
 	
 	goto :EOF
 
-:InitialSetup
-	REM Creates a directory for this BATCH file to host data in like the config file and preferences.
-	md "!BatchAppDataDir!"
-	
-	REM Creates an example Config file for the user to be able to edit.
+:UpdateAppdataFilesFunction
+
+	REM Creates/Updates an example Config file for the user to be able to edit.
 	(
 		ECHO NAME,TYPE,URL,FULL_PATH,FILE_ARGS,RunWithoutElevatedPermissions
 		ECHO Pret-Duty Wx,WEBSITE,https://www.weather.gov/zlc/predutyweatherbriefing,NA,NA,NA
 		ECHO Facility TAFs,WEBSITE,https://www.aviationweather.gov/taf/data?ids=KBIL+KBOI+KBZN+KSUN+KGPI+KGTF+KHLN+KIDA+KJAC+KTWF+KMSO+KOGD+KPIH+KPVU+KSLC,NA,NA,NA
-		ECHO vSTRIPS,WEBSITE,https://virtualnas.net/vstrips,NA,NA,NA
-		ECHO vTDLS,WEBSITE,https://virtualnas.net/vtdls,NA,NA,NA
+		ECHO vSTRIPS,WEBSITE,https://strips.virtualnas.net/,NA,NA,NA
+		ECHO vTDLS,WEBSITE,https://tdls.virtualnas.net/,NA,NA,NA
 		ECHO vATIS,PROGRAM,NA,%LocalAppdata%\vATIS-4.0\Application\vATIS.exe,NA,NA
 		ECHO AFV,PROGRAM,NA,C:\AudioForVATSIM\AudioForVATSIM.exe,NA,Y
-		ECHO CRC,PROGRAM,NA,%LocalAppdata%\CRC\Application\CRC.exe,NA,NA
+		ECHO CRC,PROGRAM,NA,%LocalAppdata%\CRC\Application\CRC.exe,--debug,NA
 		ECHO Discord,PROGRAM,NA,%LocalAppdata%\Discord\Update.exe,--processStart Discord.exe,NA
-	)>"!BatchAppDataDir!\Workstation_Config.csv"
-	
+	)>"!BatchAppDataDir!\EXAMPLE_Workstation_Config.csv"
+
+	REM Creates/Updates the ReadMe file so the user understands how to edit the config files and what they do.
 	(
 		echo.
 		echo.
@@ -453,6 +494,8 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		echo In the same directory that you are viewing this .txt file is a Workstation_Config.csv Config file for this BATCH file.
 		echo This file most likely needs to be edited by you so feel free to open it in a spreadsheet program such as Excel or edit
 		echo it manually if you feel more comfortable with that.
+		echo You will also see an EXAMPLE_Workstation_Config.csv. This file is updated with new releases of this batch file in order
+		echo to provide further examples for how to edit your Workstation_Config.csv.
 		echo.
 		echo.
 		echo Column explanations:
@@ -497,32 +540,43 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		echo.
 	)>"!BatchAppDataDir!\ReadMe.txt"
 	
-	cls
+	if /i "!First_Time_Run!"=="true" (
+		REM Creates the initial Config file for the user to be able to edit by taking the data from the EXAMPLE
+		REM csv file and pasting it into this one.
+		copy /Y "!BatchAppDataDir!\EXAMPLE_Workstation_Config.csv" "!BatchAppDataDir!\Workstation_Config.csv"
+
+		cls
+		
+		echo.
+		echo                            --------------
+		echo                               STOP^^!^^!^^!^^!^^!
+		echo                            --------------
+		echo.
+		echo            THIS IS THE ONLY TIME YOU WILL GET THIS MESSAGE
+		echo                  YOU NEED TO READ THIS PART CAREFULLY
+		echo.
+		echo Some resource files have been created for you here:
+		echo 	!BatchAppDataDir!
+		echo.
+		echo    Please read the ReadMe.txt file first to understand what you need to
+		echo    do with the Workstation_Config.csv
+		echo.
+		echo    An EXAMPLE_Workstation_Config.csv file has also been created for you
+		echo    for reference. Please do not edit this file, as this batch script may 
+		echo    updates it with new examples with new releases.
+		echo.
+		echo Press any key to open the directory where these files are, and this
+		echo CMD Prompt window will close. When done editing this file, feel free to
+		echo restart this BATCH file.
+		
+		pause>nul
+
+		START /B /WAIT explorer.exe "!BatchAppDataDir!"
+		
+		exit
+	)
 	
-	echo.
-	echo                            --------------
-	echo                               STOP^^!^^!^^!^^!^^!
-	echo                            --------------
-	echo.
-	echo            THIS IS THE ONLY TIME YOU WILL GET THIS MESSAGE
-	echo                  YOU NEED TO READ THIS PART CAREFULLY
-	echo.
-	echo A configuration file and a ReadMe.txt file has been created for you here:
-	echo 	!BatchAppDataDir!
-	echo.
-	echo    Please read the ReadMe.txt file first to understand what you need to
-	echo    do with the Workstation_Config.csv
-	echo.
-	echo.
-	echo Press any key to open the directory where these files are, and this
-	echo CMD Prompt window will close. When done editing this file, feel free to
-	echo restart this BATCH file.
-	
-	pause>nul
-	
-	START /B /WAIT explorer.exe "!BatchAppDataDir!"
-	
-	exit
+	goto :EOF
 
 :NAME_IS_NA
 
@@ -722,10 +776,10 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	echo 	-Any other action will just return you to the main menu.
 	echo.
 	
-	:: If user types Y (regardless of case), the %LocalAppdata%\WorkstationBatch
-	:: folder and all contents will be removed which will require the user to set
-	:: it up again on the next run of this script.
-	:: Typing anything else or nothing at all will return to the beginning of this script.
+	REM If user types Y (regardless of case), the %LocalAppdata%\WorkstationBatch
+	REM folder and all contents will be removed which will require the user to set
+	REM it up again on the next run of this script.
+	REM Typing anything else or nothing at all will return to the beginning of this script.
 	set RESET_QUERY=NO_INPUT_BY_USER
 	
 	set /P RESET_QUERY=To reset preferences type Y, and press Enter: 
