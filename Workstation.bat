@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 	:: Set THIS_VERSION to the version of this batch file script
-	set "THIS_VERSION=2.0.b02"
+	set "THIS_VERSION=2.0.b03"
 	
 	REM Set SCRIPT_NAME to the name of this batch file script
 	set "SCRIPT_NAME=Workstation"
@@ -427,7 +427,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		ECHO vTDLS,WEBSITE,https://virtualnas.net/vtdls,NA,NA,NA
 		ECHO vATIS,PROGRAM,NA,%LocalAppdata%\vATIS-4.0\Application\vATIS.exe,NA,NA
 		ECHO AFV,PROGRAM,NA,C:\AudioForVATSIM\AudioForVATSIM.exe,NA,Y
-		ECHO CRC,PROGRAM,NA,%LocalAppdata%\Local\CRC\Application\CRC.exe,NA,NA
+		ECHO CRC,PROGRAM,NA,%LocalAppdata%\CRC\Application\CRC.exe,NA,NA
 		ECHO Discord,PROGRAM,NA,%LocalAppdata%\Discord\Update.exe,--processStart Discord.exe,NA
 	)>"!BatchAppDataDir!\Workstation_Config.csv"
 	
