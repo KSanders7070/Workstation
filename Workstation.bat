@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 	:: Set THIS_VERSION to the version of this batch file script
-	set "THIS_VERSION=2.0.b03"
+	set "THIS_VERSION=2.0.b04"
 	
 	REM Set SCRIPT_NAME to the name of this batch file script
 	set "SCRIPT_NAME=Workstation"
@@ -209,6 +209,15 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	echo               simply delete this file and run the new one.
 	echo.
 	echo.
+	echo.
+	echo      R) REPORT AN ISSUE.
+	echo.
+	echo              -Will launch the GitHub Repo Issues page for you to report.
+	echo.
+	echo              -This option requires you to have a GitHub account, which is free.
+	echo.
+	echo.
+	echo.
 	echo      H) HELP.
 	echo.
 	echo              -Option to reset this BATCH file like new.
@@ -224,6 +233,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	
 	set /P WHAT_T0_DO_CHOICE=Type associated letter option and press Enter, or just press Enter: 
 		if /i "!WHAT_T0_DO_CHOICE!"=="C" GOTO CHECKUPDATE
+		if /i "!WHAT_T0_DO_CHOICE!"=="R" GOTO REPORT_ISSUE
 		if /i "!WHAT_T0_DO_CHOICE!"=="H" GOTO HELP
 		if /i "!WHAT_T0_DO_CHOICE!"=="NO_INPUT_BY_USER" GOTO AppDirChk
 		
@@ -282,7 +292,6 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		
 		REM See if any values return NUL, if so display an error to the user.
 		set ThereIsANulField=false
-		Set /a COUNT=0
 			if "%%a"=="" set ThereIsANulField=true
 			if "%%b"=="" set ThereIsANulField=true
 			if "%%c"=="" set ThereIsANulField=true
@@ -774,3 +783,9 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		
 		goto HELLO
 	)
+
+:REPORT_ISSUE
+
+	start "" "https://github.com/!GH_USER_NAME!/!GH_REPO_NAME!/issues"
+	
+	goto HELLO
