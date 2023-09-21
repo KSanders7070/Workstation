@@ -2,7 +2,7 @@
 setlocal enabledelayedexpansion
 
 	:: Set THIS_VERSION to the version of this batch file script
-	set "THIS_VERSION=1.0.a002"
+	set "THIS_VERSION=1.0.a004"
 	
 	REM Set SCRIPT_NAME to the name of this batch file script
 	set "SCRIPT_NAME=Workstation"
@@ -17,12 +17,63 @@ setlocal enabledelayedexpansion
 :RestOfCode
 
 :HELLO
-	REM TODO ask the user what they want to do.
+
+	REM sets the variable to this BATCH file LocalAppData directory.
+	REM At this point, it has not been created if this is the first time running the script.
+	set "BatchAppDataDir=%LocalAppdata%\WorkstationBatch"
+
+	cls
+	
+	echo.
+	echo.
+	echo  WHAT WOULD YOU LIKE TO DO?
+	echo.
+	echo.
+	echo      C) CHECK FOR AN UPDATE.
+	echo.
+	echo              -You are currently running v!THIS_VERSION!.
+	echo.
+	echo              -This option will open the GitHub releases page for this program allowing you to
+	echo               download the latest version. If you download another version of this BATCH files,
+	echo               simply delete this file and run the new one.
+	echo.
+	echo.
+	echo      H) HELP.
+	echo.
+	echo              -Option to reset this BATCH file like new.
+	echo.
+	echo              -Option to Edit the configuration file.
+	echo.
+	echo.
+	echo To start up all of your pre-defined programs/websites, just hit your enter key.
+	echo.
+	echo.
+	
+	set WHAT_T0_DO_CHOICE=NO_INPUT_BY_USER
+	
+	set /P WHAT_T0_DO_CHOICE=Type associated letter option and press Enter, or just press Enter: 
+		if /i "!WHAT_T0_DO_CHOICE!"=="C" GOTO CHECKUPDATE
+		if /i "!WHAT_T0_DO_CHOICE!"=="H" GOTO HELP
+		if /i "!WHAT_T0_DO_CHOICE!"=="NO_INPUT_BY_USER" GOTO AppDirChk
+		
+		echo.
+		echo  *** !WHAT_T0_DO_CHOICE! *** is NOT a recognized response. Try again...
+		echo.
+		echo Press any key to try again...
+		
+		pause>nul
+		
+		goto HELLO
+
+:CHECKUPDATE
+
+	START "" https://github.com/!GH_USER_NAME!/!GH_REPO_NAME!/releases/
+
+	GOTO HELLO
 
 :AppDirChk
 	REM Checks if the WorkstationBatch AppData directory for this batch script exists.
 	REM If not, it's likely the first time running and goes to the setup function.
-	set "BatchAppDataDir=%LocalAppdata%\WorkstationBatch"
 	if not exist "!BatchAppDataDir!" call :InitialSetup
 
 :InitiateVariables
@@ -103,13 +154,12 @@ setlocal enabledelayedexpansion
 		echo 	URL:			%%d
 		echo 	W/O Elv Perms:		%%e
 	)
-	echo.
-	echo.
+	
+	cls
+	
 	echo.
 	echo Config File validated.
 	echo 	Note-URLs are not checked for validitiy except for making sure it is not NA when TYPE=WEBSITE.
-	echo.
-	echo.
 	echo.
 	
 	PAUSE
@@ -362,3 +412,109 @@ setlocal enabledelayedexpansion
 	start /B /WAIT explorer.exe "!BatchAppDataDir!"
 	
 	EXIT
+
+:HELP
+	
+	cls
+	
+	echo.
+	echo.
+	echo WHAT DO NEED TO DO?
+	echo.
+	echo    R) Resetting all preferences; Making it like the first time you ran this script.
+	echo            -Be careful, as this will also delete your saved directories and websites.
+	echo.
+	echo    E) I want to edit the Workstation_Config.csv file.
+	echo.
+	echo.
+	
+	set RESET_QUERY=NO_INPUT_BY_USER
+	
+	set /P HELP_QUERY=Type one of the letters associated with your options and press Enter: 
+		if /i "!HELP_QUERY!"=="R" GOTO HelpResetBatch
+		if /i "!HELP_QUERY!"=="E" GOTO HelpEditConfigFile
+		
+		echo.
+		echo  *** !RESET_QUERY! *** is NOT a recognized response. Try again...
+		echo.
+		echo Press any key to try again...
+		
+		pause>nul
+		
+		goto HELP
+
+:HelpResetBatch
+
+	cls
+	
+	echo.
+	echo.
+	echo Typing "Y" without quotes will delete all previously
+	echo saved data such as directories and websites.
+	echo.
+	echo 	-Any other action will just return you to the main menu.
+	echo.
+	
+	:: If user types Y (regardless of case), the %LocalAppdata%\WorkstationBatch
+	:: folder and all contents will be removed which will require the user to set
+	:: it up again on the next run of this script.
+	:: Typing anything else or nothing at all will return to the beginning of this script.
+	set RESET_QUERY=NO_INPUT_BY_USER
+	
+	set /P RESET_QUERY=To reset preferences type Y, and press Enter: 
+		if /i not "!RESET_QUERY!"=="Y" GOTO HELLO
+		
+		cd /d "%LocalAppdata%"
+		
+		if exist "!BatchAppDataDir!" (
+			RD /S /Q "!BatchAppDataDir!"
+			cls
+			echo.
+			echo.
+			echo This BATCH file has been reset as if it is the first time you are running it.
+			echo.
+			echo Press any key to return to the main menu...
+			pause>nul
+			goto HELLO
+		) else (
+			cls
+			echo.
+			echo.
+			echo Looks like there was no Configuration files to delete/reset.
+			echo.
+			echo To have one set up for you, return to the main menu and then press
+			echo Enter to "Start your workstation".
+			echo.
+			echo Press any key to return to the main menu...
+			pause>nul
+			goto HELLO
+		)
+
+:HelpEditConfigFile
+
+	cls
+	
+	echo.
+	echo.
+	
+	if exist "!BatchAppDataDir!" (
+		echo Press any key to open the directory with your configuration file...
+		
+		pause>nul
+		
+		start /B /WAIT explorer.exe "!BatchAppDataDir!"
+		
+		exit
+	) else (
+		echo Looks like you do not yet have a Configuration file.
+		echo.
+		echo To have one set up for you, return to the main menu and then press
+		echo Enter to "Start your workstation".
+		echo.
+		echo.
+		echo Press any key to return to the main menu...
+		
+		pause>nul
+		
+		goto HELLO
+	)
