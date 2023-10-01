@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 mode con: cols=140 lines=40
 
 	:: Set THIS_VERSION to the version of this batch file script
-	set "THIS_VERSION=2.0.b06"
+	set "THIS_VERSION=2.0"
 	
 	REM Set SCRIPT_NAME to the name of this batch file script
 	set "SCRIPT_NAME=Workstation"
@@ -384,6 +384,8 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 
 :LaunchWorkstation
 	
+	cls
+	
 	echo.
 	echo.
 	echo LAUNCHING WEBSITES AND PROGRAMS...
@@ -414,10 +416,10 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	echo.
 	echo.
 	echo.
-	echo Press any key to exit this batch file script...
+	echo Press any key to exit this batch file script or wait for it to close in 15 seconds...
 	
-	pause>nul
-	
+	timeout /t 15 >nul
+	PAUSE
 	exit
 
 :CallFunctions
@@ -425,6 +427,10 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 :LAUNCH_WEBSITE
 	REM Launches the website.
 	START "" "!URL!"
+	
+	ECHO.
+	ECHO      !NAME!  -  !URL!
+	ECHO.
 	
 	goto :EOF
 
@@ -445,11 +451,19 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 		REM ...and there are Arguments to be passed in with the launch of the program do this.
 		if /i not "!FILE_ARGS!"=="NA" (
 			cmd /min /C "set __COMPAT_LAYER=RUNASINVOKER && start "" "!FILE_AND_EXTENSION!" !FILE_ARGS!"
+			
+			ECHO.
+			ECHO      !NAME!  -  !FILE_AND_EXTENSION! !FILE_ARGS! ^(without elevated permissions^)
+			ECHO.
 		)
 		
 		if /i "!FILE_ARGS!"=="NA" (
 			REM ...and there are no Arguments to be passed in with the launch of the program do this.
 			cmd /min /C "set __COMPAT_LAYER=RUNASINVOKER && start "" "!FILE_AND_EXTENSION!""
+			
+			ECHO.
+			ECHO      !NAME!  -  !FILE_AND_EXTENSION! ^(without elevated permissions^)
+			ECHO.
 		)
 	) else (
 		if /i not "!FILE_ARGS!"=="NA" (
@@ -457,11 +471,19 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 			
 			REM ...and there are Arguments to be passed in with the launch of the program do this.
 			start "" "!FILE_AND_EXTENSION!" !FILE_ARGS!
+			
+			ECHO.
+			ECHO      !NAME!  -  !FILE_AND_EXTENSION! !FILE_ARGS!
+			ECHO.
 		)
 		
 		if /i "!FILE_ARGS!"=="NA" (
 			REM ...and there are no Arguments to be passed in with the launch of the program do this.
 			start "" "!FILE_AND_EXTENSION!"
+			
+			ECHO.
+			ECHO      !NAME!  -  !FILE_AND_EXTENSION!
+			ECHO.
 		)	
 	)
 	
