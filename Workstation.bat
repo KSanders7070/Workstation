@@ -419,7 +419,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	echo Press any key to exit this batch file script or wait for it to close in 15 seconds...
 	
 	timeout /t 15 >nul
-	PAUSE
+
 	exit
 
 :CallFunctions
