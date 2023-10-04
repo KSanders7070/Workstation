@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 mode con: cols=140 lines=40
 
 	:: Set THIS_VERSION to the version of this batch file script
-	set "THIS_VERSION=2.0"
+	set "THIS_VERSION=2.0.01"
 	
 	REM Set SCRIPT_NAME to the name of this batch file script
 	set "SCRIPT_NAME=Workstation"
@@ -29,19 +29,8 @@ mode con: cols=140 lines=40
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 :::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
-TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
-	
-	:: Set variables for later use.
+	TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 
-	set User_Level_GH_RLS_PAGE=https://github.com/!GH_USER_NAME!/!GH_REPO_NAME!/releases
-	::                         https://github.com/KSanders7070/AUTO_UPDATE_BATCH_FILE/releases
-		
-	set "GH_LATEST_RLS_PAGE=https://api.github.com/repos/!GH_USER_NAME!/!GH_REPO_NAME!/releases/latest"
-	::                      https://api.github.com/repos/KSanders7070/AUTO_UPDATE_BATCH_FILE/releases/latest
-	set "URL_TO_DOWNLOAD=!GH_LATEST_RLS_PAGE!"
-	
-	set "LATEST_VERSION="
-	
 :SetUpTempDir
 
 	:: Setting up the Temp Directory
@@ -52,8 +41,12 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	CD /D "!GH_REPO_NAME!-UDPATE"
 
 :GetLatestVerNum
-:: URL to fetch JSON data from GitHub API
 
+	:: URL to fetch JSON data from GitHub API
+	set "GH_LATEST_RLS_PAGE=https://api.github.com/repos/!GH_USER_NAME!/!GH_REPO_NAME!/releases/latest"
+	set "URL_TO_DOWNLOAD=!GH_LATEST_RLS_PAGE!"
+	set "LATEST_VERSION="
+	
 	:RedirectLooop
 
 		if exist response.json del /Q response.json
@@ -77,7 +70,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 			ECHO NOTE-I will open the releases page for you to see if there is a newer version.
 			
 			PAUSE>NUL
-			START "" "!User_Level_GH_RLS_PAGE!"
+			START "" "!GH_LATEST_RLS_PAGE!"
 			GOTO UpdateCleanUp
 			)
 		
@@ -100,7 +93,7 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 				ECHO NOTE-I will open the releases page for you to see if there is a newer version.
 				
 				PAUSE>NUL
-				START "" "!User_Level_GH_RLS_PAGE!"
+				START "" "!GH_LATEST_RLS_PAGE!"
 				GOTO UpdateCleanUp
 			)
 				
@@ -160,18 +153,21 @@ TITLE !SCRIPT_NAME! (v!THIS_VERSION!)
 	SET /p UPDATE_CHOICE=Please type either M, or C and press Enter: 
 		if /I %UPDATE_CHOICE%==U GOTO UPDATE
 		if /I %UPDATE_CHOICE%==C GOTO UpdateCleanUp
-		if /I %UPDATE_CHOICE%==NO_CHOICE_MADE GOTO UpdateAvailablePrompt
+		goto UpdateAvailablePrompt
 	
 :UPDATE
+	
+	set GH_LATEST_RLS_PAGE=https://github.com/!GH_USER_NAME!/!GH_REPO_NAME!/releases/latest
+	
 	CLS
 	
-	START "" "!User_Level_GH_RLS_PAGE!"
+	START "" "!GH_LATEST_RLS_PAGE!"
 	
 	ECHO.
 	ECHO.
 	ECHO GO TO THE FOLLOWING WEBSITE, DOWNLOAD AND USE THE LATEST VERSION OF %~nx0
 	ECHO.
-	ECHO    !User_Level_GH_RLS_PAGE!
+	ECHO    !GH_LATEST_RLS_PAGE!
 	ECHO.
 	ECHO Press any key to exit...
 	
